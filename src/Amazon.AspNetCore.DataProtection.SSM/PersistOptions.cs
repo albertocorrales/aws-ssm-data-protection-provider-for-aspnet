@@ -29,9 +29,8 @@ namespace Amazon.AspNetCore.DataProtection.SSM
         public string KMSKeyId { get; set; }
 
         /// <summary>
-        /// Storage mode to decide which parameter storage tier will be used. Default is <see cref="TierStorageMode.StandardOnly"/>.
-        /// Higher tiers allow more characters which is required for larger keys.
+        /// Optional region to replicate the secret
         /// </summary>
-        public TierStorageMode TierStorageMode { get; set; } = TierStorageMode.StandardOnly;
+        public string ReplicationRegion { get; set; }
     }
 }

@@ -12,19 +12,15 @@ Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
   express or implied. See the License for the specific language governing
   permissions and limitations under the License.
  */
+using Amazon.AspNetCore.DataProtection.SSM;
+using Amazon.SecretsManager;
+using Amazon.SimpleSystemsManagement;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.AspNetCore.DataProtection;
-
-using Amazon.AspNetCore.DataProtection.SSM;
-using Amazon.SimpleSystemsManagement;
+using Microsoft.Extensions.Options;
+using System;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -52,10 +48,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// with this prefix.
         /// </summary>
         /// <param name="builder"></param>
-        /// <param name="parameterNamePrefix">The prefix applied to the DataProtection key names.</param>
+        /// <param name="secretNamePrefix">The prefix applied to the DataProtection key names.</param>
         /// <param name="setupAction">Delegate to specify options for persistence. For example setting a KMS Key ID.</param>
         /// <returns></returns>
-        public static IDataProtectionBuilder PersistKeysToAWSSystemsManager(this IDataProtectionBuilder builder, string parameterNamePrefix, Action<PersistOptions> setupAction = null)
+        public static IDataProtectionBuilder PersistKeysToAWSSystemsManager(this IDataProtectionBuilder builder, string secretNamePrefix, Action<PersistOptions> setupAction = null)
         {
             if (builder == null)
             {
@@ -74,7 +70,34 @@ namespace Microsoft.Extensions.DependencyInjection
                 var loggerFactory = services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
                 return new ConfigureOptions<KeyManagementOptions>(options =>
                 {
-                    options.XmlRepository = new SSMXmlRepository(ssmClient, parameterNamePrefix, ssmOptions, loggerFactory);
+                    options.XmlRepository = new SSMXmlRepository(ssmClient, secretNamePrefix, ssmOptions, loggerFactory);
+                });
+            });
+
+            return builder;
+        }
+
+
+        public static IDataProtectionBuilder PersistKeysToAWSSecretsManager(this IDataProtectionBuilder builder, string parameterNamePrefix, Action<PersistOptions> setupAction = null)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            builder.Services.TryAddAWSService<IAmazonSimpleSystemsManagement>();
+
+            builder.Services.AddSingleton<IConfigureOptions<KeyManagementOptions>>(services =>
+            {
+                var ssmOptions = new PersistOptions();
+                setupAction?.Invoke(ssmOptions);
+
+                var client = services.GetService<IAmazonSecretsManager>();
+
+                var loggerFactory = services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance;
+                return new ConfigureOptions<KeyManagementOptions>(options =>
+                {
+                    options.XmlRepository = new SecretsManagerXmlRepository(client, parameterNamePrefix, ssmOptions, loggerFactory);
                 });
             });
 
