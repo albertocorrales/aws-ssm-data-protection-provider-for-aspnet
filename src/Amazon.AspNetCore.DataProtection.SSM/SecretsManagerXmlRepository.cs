@@ -29,7 +29,7 @@ namespace Amazon.AspNetCore.DataProtection.SSM
     /// </summary>
     internal class SecretsManagerXmlRepository : IXmlRepository, IDisposable
     {
-        const string DataProtectionKeyDescription = "DataProtectionKey";
+        const string TagDataProtectionKey = "DataProtectionKey";
 
         private readonly IAmazonSecretsManager _secretsManagerClient;
         private readonly string _secretNamePrefix;
@@ -84,8 +84,8 @@ namespace Amazon.AspNetCore.DataProtection.SSM
                 {
                     new Filter()
                     {
-                        Key = FilterNameStringType.Description,
-                        Values = new List<string> { DataProtectionKeyDescription }
+                        Key = FilterNameStringType.TagKey,
+                        Values = new List<string> { TagDataProtectionKey }
                     }
                 },
             };
@@ -155,7 +155,7 @@ namespace Amazon.AspNetCore.DataProtection.SSM
                 {
                     Name = secretName,
                     SecretString = elementValue,
-                    Description = DataProtectionKeyDescription
+                    Tags = new List<Tag> { new Tag { Key = TagDataProtectionKey } }
                 };
 
                 if (!string.IsNullOrEmpty(_options.KMSKeyId)) 
